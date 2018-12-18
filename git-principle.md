@@ -6,22 +6,50 @@
 好， 痛定思痛， 我决定从原理上理解Git， 所以决定写下这篇文章（ 才不会说是因为buddy叫我准备一场针对Git的session）.
 PS： 这篇文章不会是一个体系完善的Git教程， 而是会针对性地从原理上理解一些我们常用的Git命令， 最终目标就是能够在多人合作的场景下保证所有分支的代码安全。
 
+# 目录
+- [目录](#目录)
+- [Git的那些概念](#git的那些概念)
+  - [Git的本质是什么 ?](#git的本质是什么-)
+  - [几个重要的概念（类比字典）](#几个重要的概念类比字典)
+- [Git的那些操作（只是我们会用到的操作:)）](#git的那些操作只是我们会用到的操作)
+
 # Git的那些概念
 ## Git的本质是什么 ?
 Git的本质其实是~~复读机~~一个**内容寻址（content-addressable）文件系统**，并在此之上提供了一个版本控制系统的用户界面。Git的核心部分是一个简单的**键值对数据库**。 你可以向该数据库**插入任意类型的值（object）**，它会**返回一个键值（object的引用地址，SHA-1字符串）**，通过该键值可以在任意时刻再次**检索（retrieve）**该内容，因此我们引出了如下的
 ## 几个重要的概念（类比字典）
-- object：字典项
-  - blob object：对应的值是特定文件的特定版本的内容。
-    ![blob object](http://my.csdn.net/uploads/201206/19/1340112751_1500.jpg)
-  - tree object：对应的值的内含信息是一个或多个字典项的数据集，这些被指向项上存放内容可以是`blob object`，也可以是另一个`tree object`。
-    ![tree object](http://my.csdn.net/uploads/201206/19/1340112774_4979.jpg)
-  - commit object：对应的值的是一个包括一个`tree object`的地址、一个父级`commit object`的地址、一个作者信息以及一个提交message信息）的数据集。
-    ![commit object](http://my.csdn.net/uploads/201206/19/1340112824_8482.jpg)
-  - tag object：对应的值是一个包括一个地址（99.999%的情形是`commit object`的地址，其他情况不讨论）、一个标签创建者信息、一个日期、一段注释信息的数据集。
-    ![tag object](http://my.csdn.net/uploads/201206/19/1340112881_3795.jpg)
+- object：字典项（有实际内容）
+  - blob：对应的值是特定文件的特定版本的内容（不包括文件名）。
+
+    ![blob](http://my.csdn.net/uploads/201206/19/1340112751_1500.jpg)
+  - tree：对应的值的内含信息是一个或多个字典项的数据列表，这些被指向项上存放内容可以是文件（`blob`）的包裹体，也可以是文件夹（`tree`）的包裹体，这些包裹体会附带文件（夹）的名称等元数据。
+    
+    ![tree](http://my.csdn.net/uploads/201206/19/1340112774_4979.jpg)
+
+  - commit：对应的值的是一个包括父级`commit`的地址、作者信息以及提交message等信息的数据集（`Comments`），以及一些代表变更后文件的`tree`。
+    
+    ![commit](http://my.csdn.net/uploads/201206/19/1340112824_8482.jpg)
+
+    以Git GUI里面的一个提交为例，可以看得更加清楚
+
+    ![image](https://user-images.githubusercontent.com/11873100/50170232-5de04780-032a-11e9-9100-3ce2f3ceba7b.png)（红色框部分为`Comments`数据集，蓝色框部分为指向一个文件的`tree`）
+
+  - tag：对应的值是一个包括一个地址（99.999%的情形是`commit`的地址，其他情况不讨论）、一个标签创建者信息、一个日期、一段注释信息的数据集。
+    
+    ![tag](http://my.csdn.net/uploads/201206/19/1340112881_3795.jpg)
+
 所以最终的整体结构应该是这样：
+
 ![objects](https://git-scm.com/book/en/v2/images/data-model-3.png)
 
-- ref：指向字典键的引用
-  - branch ref：
-  - HEAD ref
+- ref：指向字典键的引用（没有实际内容，只是SHA-1的别名）
+  - branch：指向某一系列提交之首的引用
+  - HEAD：指向目前所在的分支的引用
+  - tag：
+    - lightweight tag：指向任意提交的引用
+    - annotated tag：指向一个标签对象的引用
+  - remote branch：指向某服务器端某一系列提交之首的引用
+
+# Git的那些操作（只是我们会用到的操作:)）
+
+- **commit**：
+
