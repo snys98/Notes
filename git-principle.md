@@ -11,7 +11,11 @@ PS： 这篇文章不会是一个体系完善的Git教程， 而是会针对性�
 - [Git的那些概念](#git的那些概念)
   - [Git的本质是什么 ?](#git的本质是什么-)
   - [几个重要的概念（类比字典）](#几个重要的概念类比字典)
+    - [**object：字典项（有实际内容）**](#object字典项有实际内容)
+    - [**ref：指向字典键的引用（没有实际内容，只是SHA-1的别名）**](#ref指向字典键的引用没有实际内容只是sha-1的别名)
 - [Git的那些操作（只是我们会经常用到的常用操作:)）](#git的那些操作只是我们会经常用到的常用操作)
+  - [file-level](#file-level)
+  - [commit-level](#commit-level)
 - [Git的那些冲突（针对TrunkFlow）](#git的那些冲突针对trunkflow)
   - [出现冲突的可能情形](#出现冲突的可能情形)
   - [规避冲突的优选操作](#规避冲突的优选操作)
@@ -21,53 +25,62 @@ PS： 这篇文章不会是一个体系完善的Git教程， 而是会针对性�
     - [别名](#别名)
 
 # Git的那些概念
+
 ## Git的本质是什么 ?
+
 Git的本质其实是~~复读机~~一个**内容寻址（content-addressable）文件系统**，并在此之上提供了一个版本控制系统的用户界面。Git的核心部分是一个简单的**键值对数据库**。 你可以向该数据库**插入任意类型的值（object）**，它会**返回一个键值（object的引用地址，SHA-1字符串）**，通过该键值可以在任意时刻再次检索该内容，因此我们引出了如下的
+
 ## 几个重要的概念（类比字典）
-- object：字典项（有实际内容）
-  - blob：对应的值是特定文件的特定版本的内容（不包括文件名）。
+
+### **object：字典项（有实际内容）**
+
+- blob：对应的值是特定文件的特定版本的内容（不包括文件名）。
 
     ![blob](http://my.csdn.net/uploads/201206/19/1340112751_1500.jpg)
-  - tree：对应的值的内含信息是一个或多个字典项的数据列表，这些被指向项上存放内容可以是文件（`blob`）的包裹体，也可以是文件夹（`tree`）的包裹体，这些包裹体会附带文件（夹）的名称等元数据。
-    
+
+- tree：对应的值的内含信息是一个或多个字典项的数据列表，这些被指向项上存放内容可以是文件（`blob`）的包裹体，也可以是文件夹（`tree`）的包裹体，这些包裹体会附带文件（夹）的名称等元数据。
+
     ![tree](http://my.csdn.net/uploads/201206/19/1340112774_4979.jpg)
 
-  - commit：对应的值的是一个包括父级`commit`的地址、作者信息以及提交message等信息的数据集（`Comments`），以及一些代表变更后文件的`tree`。
-    
+- commit：对应的值的是一个包括父级`commit`的地址、作者信息以及提交message等信息的数据集（`Comments`），以及一些代表变更后文件的`tree`。
+
     ![commit](http://my.csdn.net/uploads/201206/19/1340112824_8482.jpg)
 
-    以Git GUI里面的一个提交为例，可以看得更加清楚
+以Git GUI里面的一个提交为例，可以看得更加清楚
+    ![image](https://user-images.githubusercontent.com/11873100/50170232-5de04780-032a-11e9-9100-3ce2f3ceba7b.png)
+    （红色框部分为`Comments`数据集，蓝色框部分为指向一个文件的`tree`）
 
-    ![image](https://user-images.githubusercontent.com/11873100/50170232-5de04780-032a-11e9-9100-3ce2f3ceba7b.png)（红色框部分为`Comments`数据集，蓝色框部分为指向一个文件的`tree`）
+- tag：对应的值是一个包括一个地址（99.999%的情形是`commit`的地址，其他情况不讨论）、一个标签创建者信息、一个日期、一段注释信息的数据集。
 
-  - tag：对应的值是一个包括一个地址（99.999%的情形是`commit`的地址，其他情况不讨论）、一个标签创建者信息、一个日期、一段注释信息的数据集。
-    
     ![tag](https://camo.githubusercontent.com/dc9c255b9b57cae2d0b4c99480dca5af2d24ba37/687474703a2f2f6d792e6373646e2e6e65742f75706c6f6164732f3230313230362f31392f313334303131323838315f333739352e6a7067)
 
 所以最终的整体结构应该是这样：
-
 ![objects](https://git-scm.com/book/en/v2/images/data-model-3.png)
 
 PS：
 1. 我们所使用的日常git命令基本都是在操作commit和tag
 2. 理解原理，只有两类对象，值有意义（值是数据本身）的对象&值没有意义（值是引用）的对象
 
-- ref：指向字典键的引用（没有实际内容，只是SHA-1的别名）
-  - branch：指向某一系列提交之首的引用，它是一个可以移动的`tag`
-  - HEAD：指向目前所在的分支的引用
-  - tag：
-    - lightweight tag：指向任意提交的引用
-    - annotated tag：指向一个标签对象的引用
-  - remote branch：指向某服务器端某一系列提交之首的引用
+### **ref：指向字典键的引用（没有实际内容，只是SHA-1的别名）**
+
+- branch：指向某一系列提交之首的引用，它是一个可以移动的`tag`
+- HEAD：指向目前所在的分支的引用
+- tag：
+  - lightweight tag：指向任意提交的引用
+  - annotated tag：指向一个标签对象的引用
+- remote branch：指向某服务器端某一系列提交之首的引用
 
 # Git的那些操作（只是我们会经常用到的常用操作:)）
 
-- file-level
+## file-level
+
   - stage @path：标记文件需要被提交
   - reset @path：取消文件的stage状态
     - --hard：取消文件的stage状态并恢复其到unmodified状态
   - checkout @path: 等价于reset @path --hard
-- commit-level
+
+## commit-level
+
   - commit：提交<!-- -m "message"来附加提交信息 -->
     - --amend：与前一个提交合并提交（改写）
   - reset @commitid=null：重置HEAD到指定commit上<!-- commitid为null时其实操作只是重置了HEAD -->
