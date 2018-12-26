@@ -17,9 +17,9 @@ PS:  这篇文章不会是一个体系完善的Git教程,  只会针对性地根
     - [**ref(引用)**](#ref引用)
 - [Git的那些常用操作](#git的那些常用操作)
   - [file-level](#file-level)
-  - [commit-level](#commit-level)
+  - [commit/branch-level](#commitbranch-level)
   - [repo-level](#repo-level)
-- [Git的那些冲突(针对TrunkFlow)](#git的那些冲突针对trunkflow)
+- [Git的那些冲突（针对TrunkFlow)](#git的那些冲突针对trunkflow)
   - [出现冲突的可能情形](#出现冲突的可能情形)
   - [规避冲突的优选操作](#规避冲突的优选操作)
   - [解决冲突的原则](#解决冲突的原则)
@@ -48,7 +48,7 @@ Git的本质其实是~~复读机~~一个**内容寻址（content-addressable)文
 ![tree](http://my.csdn.net/uploads/201206/19/1340112774_4979.jpg)
 
 ###  3. commit对象
-对应的值包含一个数据集（通常称为`Comments`, 这个数据集包含父级`commit`的地址、作者以及提交message等信息)以及一个当前`commit`对应的变更的`tree`, `tree`的内容为当次提交的变动快照。
+对应的值包含一个数据集（通常称为`Comments`, 这个数据集包含父级`commit`的地址(SHA1值, 通常也被称作commitid)、作者以及提交message等信息)以及一个当前`commit`对应的变更的`tree`, `tree`的内容为当次提交的变动快照。
 
 ![commit](http://my.csdn.net/uploads/201206/19/1340112824_8482.jpg)
 
@@ -59,6 +59,7 @@ Git的本质其实是~~复读机~~一个**内容寻址（content-addressable)文
 所以, 当存在多个提交时,
 
 ```bash
+#bash
 git init
 echo "version 1" > test.txt
 git add .
@@ -83,15 +84,15 @@ git commit -m "third commit"
 
 ### **ref(引用)**
 
-- branch: 指向某一系列提交之首的引用<!-- 和普通使用理解意义上的分支有些区别 -->
-- HEAD: 指向目前工作基点的引用<!-- HEAD必须指向分支(symbolic reference)或直接指向提交(detached HEAD), 这里不进行过多发散 -->
+- branch: 指向某一系列提交之首的引用<!-- 分支严格来说只是一个指向commit的引用, 但是git的内建机制在进行相关操作时会针对分支这一类型作特殊的处理 -->
+- HEAD: 指向目前工作基点提交的引用<!-- HEAD必须指向分支(symbolic reference)或直接指向提交(detached HEAD), 这里不进行过多发散 -->
 - tag: 
   - lightweight tag: 指向任意提交的引用
   - annotated tag: 指向一个标签对象的引用(注:标签对象其实和上面提到的三种一样也是对象, 不过非常罕见, 结构类似commit, 不过内含数据不是指向变动快照的`tree`, 而是指向`commit`)
   <!-- tag对象不做发散 -->
 - remote branch: 指向某服务器端某一系列提交之首的引用
 
-# Git的那些操作
+# Git的那些常用操作
 
 ## file-level
 
@@ -106,14 +107,36 @@ git commit -m "third commit"
     - --hard: 取消文件的stage状态并恢复其到unmodified状态
   - checkout @path: 等价于reset @path --hard
 
-## commit-level
+## commit/branch-level
 
-  - branch: 创建一个分支<!-- 实际上是给一个commit打上分支的标记 -->
+**注: 以下的所有commitid都可以换成branch(或者说ref)**<!-- 更能理解其实ref就是对某个commitid的引用 -->
+
+以下一些操作可以到https://learngitbranching.js.org/?NODEMO上进行交互式演示
+
   - checkout @commitid=null: 转移HEAD到指定提交<!-- commitid为null时等价于 hard reset -->
+
+```bash
+git checkout c0 # 将HEAD移动到c0(master保持不变, 此时HEAD为detached HEAD, 直接指向了commit而非某个ref)
+```
+
   - commit: 提交<!-- -m "message"来附加提交信息 -->
     - --amend: 与前一个提交合并提交（改写)
-  - reset @commitid=null: 重置HEAD到指定提交<!-- commitid为null时其实操作只是重置了HEAD -->
-    - --hard: 抛弃reset过程中的所有文件变更
+```bash
+git commit #生成一个新提交
+git commit --amend #改写基点提交, 当前worktree内容融合基点提交的内容重新生成一个提交
+```
+- branch: 创建一个分支<!-- 实际上是给一个commit打上分支的标记 -->
+```bash
+git branch branch1 # 基于当前生成一个新分支
+git checkout branch1 # 移动HEAD到这个新分支(branch1)
+```
+- reset @commitid=null: 重置HEAD及其所指向的ref到指定提交<!-- commitid为null时其实操作只是重置了HEAD -->
+  - --hard: 抛弃reset过程中的所有文件变更()
+```bash
+git reset master # 重置HEAD及其所指向的ref到master所在提交
+# 重置HEAD及其所指向的ref到"c2'"提交
+git reset c2'
+```
 
     PS: 关于reset和check的区别
     ![reset vs checkout](https://user-images.githubusercontent.com/11873100/50234698-3902d780-03f1-11e9-9b6b-28088db3b7a6.png)
@@ -121,6 +144,8 @@ git commit -m "third commit"
   - revert @commitid: 提交一次与某次提交的内容完全相反的提交<!-- 历史依然单向移动 -->
   - cherry-pick @commitid: 将某个commit的变动叠加到HEAD所指向的commit上(会创建一个和之前的commit内容一样的提交, 不过两者具有不同的sha1值)
   - tag: 标记具有某种特殊意义的提交（里程碑)
+  - merge @commitid: 将某一次提交的内容整合到HEAD(生成一次merge提交叠加在HEAD之上并移动HEAD)
+  - rebase @commitid: 将某一次提交的内容整合到HEAD(把所有不在commitid对应提交所在提交链上的提交叠加在该提交上)
 
 ## repo-level
 
