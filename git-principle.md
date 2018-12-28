@@ -19,7 +19,7 @@ PS:  这篇文章不会是一个体系完善的Git教程,  只会针对性地根
   - [file-level](#file-level)
   - [commit/branch-level](#commitbranch-level)
   - [repo-level](#repo-level)
-- [Git的那些冲突（针对TrunkFlow)](#git的那些冲突针对trunkflow)
+- [Git的那些冲突](#git的那些冲突)
   - [出现冲突的可能情形](#出现冲突的可能情形)
   - [规避冲突的优选操作](#规避冲突的优选操作)
   - [解决冲突的原则](#解决冲突的原则)
@@ -113,6 +113,10 @@ git commit -m "third commit"
 
 以下一些操作可以到https://learngitbranching.js.org/?NODEMO上进行交互式演示
 
+```bash
+git clone # 初始化模拟仓库
+```
+
   - checkout @commitid=null: 转移HEAD到指定提交<!-- commitid为null时等价于 hard reset -->
 
 ```bash
@@ -121,38 +125,88 @@ git checkout c0 # 将HEAD移动到c0(master保持不变, 此时HEAD为detached H
 
   - commit: 提交<!-- -m "message"来附加提交信息 -->
     - --amend: 与前一个提交合并提交（改写)
+
 ```bash
 git commit #生成一个新提交
 git commit --amend #改写基点提交, 当前worktree内容融合基点提交的内容重新生成一个提交
 ```
+
 - branch: 创建一个分支<!-- 实际上是给一个commit打上分支的标记 -->
+
 ```bash
 git branch branch1 # 基于当前生成一个新分支
 git checkout branch1 # 移动HEAD到这个新分支(branch1)
 ```
+
 - reset @commitid=null: 重置HEAD及其所指向的ref到指定提交<!-- commitid为null时其实操作只是重置了HEAD -->
   - --hard: 抛弃reset过程中的所有文件变更()
+
 ```bash
 git reset master # 重置HEAD及其所指向的ref到master所在提交
 # 重置HEAD及其所指向的ref到"c2'"提交
 git reset c2'
 ```
 
-    PS: 关于reset和check的区别
-    ![reset vs checkout](https://user-images.githubusercontent.com/11873100/50234698-3902d780-03f1-11e9-9b6b-28088db3b7a6.png)
+PS: 关于reset和check的区别
+![reset vs checkout](https://user-images.githubusercontent.com/11873100/50234698-3902d780-03f1-11e9-9b6b-28088db3b7a6.png)
 
   - revert @commitid: 提交一次与某次提交的内容完全相反的提交<!-- 历史依然单向移动 -->
+
+```bash
+# 生成一次和c2'相反的提交(抵消/还原c2'提交并向前移动HEAD, 新版本的git还支持批量revert(git revert start..end)
+git revert c2'
+```
+
   - cherry-pick @commitid: 将某个commit的变动叠加到HEAD所指向的commit上(会创建一个和之前的commit内容一样的提交, 不过两者具有不同的sha1值)
+
+```bash
+git cherry-pick c1 # 将c1提交的变动快照同步到当前HEAD位置, 新版本的git还支持批量cherry-pick(git cherry-pick start..end)
+```
+
   - tag: 标记具有某种特殊意义的提交（里程碑)
+
+```bash
+git tag OnMerge # 给当前提交取名"OnMerge", 可以很方便地回滚到特定版本
+```
+
   - merge @commitid: 将某一次提交的内容整合到HEAD(生成一次merge提交叠加在HEAD之上并移动HEAD)
+
+```bash
+git checkout master # 模拟其他人在master上进行了两次提交
+git commit # 模拟一次提交c3
+git commit # 再模拟一次提交c4
+git checkout branch1 # 切回HEAD到branch1
+git merge c3 # 单独合并c3的变动到当前HEAD
+git reset c1'
+git merge master # 合并master上所有的变动到当前HEAD
+```
+
   - rebase @commitid: 将某一次提交的内容整合到HEAD(把所有不在commitid对应提交所在提交链上的提交叠加在该提交上)
+    - -i 交互式, 可以选择哪些提交要被rebase到指定位置后
+
+```bash
+git checkout master # 模拟其他人在master上进行了两次提交
+git commit # 模拟一次提交c7
+git commit # 再模拟一次提交c8
+git checkout branch1 # 切回HEAD到branch1
+git rebase c7 # 把当前分支的变更叠加到c7上
+git rebase OnMerge # 撤销一下
+git rebase master -i # 把当前分支的变更叠加到master上(效果等效于merge, 不过rebase假定自己的编辑都是基于master的)
+```
+
+```bash
+# 如果经常保持rebase, 那么当branch1需要被merge回master时, 会非常容易
+git checkout master
+git merge branch1 # 冲突已经在频繁的rebase中被解决的, 这里的merge都会是"快速前进"
+# 可以说是多分支开发中的"单分支开发"
+```
 
 ## repo-level
 
   - fetch: 同步remote repo的状态<!-- 关于pull, git pull其实是git fetch + get merge <origin名>/<分支名>的组合命令, 在我们trunkflow中, 我们应该使用 --rebase -->
   - remote: 管理remote repo及相关分支, 几乎只需要单次配置, 不做赘述.
   - push: 将本地的commit推送到服务器（默认不会推送tag)<!-- 需要保证此时代码为最新版本 -->
-    - push --tag: 连tag一起推送<!-- force 这些操作就不提了, 因为理论来说不应该使用它们 -->
+    - push --tag: 连tag一起推送<!-- force 这些操作就不提了, 因为理论来说不太应该使用它们 -->
 
 ![image](https://user-images.githubusercontent.com/11873100/50385717-df621c00-0714-11e9-9664-fa4cb17597f9.png)
 <!-- 
@@ -160,7 +214,7 @@ git reset c2'
     2. merge和rebase会根据repo的index来更新当前的HEAD
  -->
 
-# Git的那些冲突（针对TrunkFlow)
+# Git的那些冲突
 
 ## 出现冲突的可能情形
 
@@ -171,7 +225,7 @@ git reset c2'
 
 ## 规避冲突的优选操作
 
-- 小步提交 <!-- 增加上传频率, 小伙伴们更容易获取到最新的代码 -->
+- 代码稳定后尽快推送 <!-- 增加上传频率, 小伙伴们更容易获取到最新的代码 -->
 - 勤获取代码（*Build前自动获取最新代码*)<!-- 增加下载频率, 更容易获取到最新的代码 -->
 - 结构变更优先提交, 并及时在团队内同步信息 <!-- 避免小伙伴们在已经不存在的文件上编码 -->
 
@@ -206,10 +260,3 @@ PS: 针对树冲突（上面可能出现的冲突的后两种)的处理流程（
 ```bash
 git config --global alias.co checkout
 ```
-
-<!-- ### 之前了解到的一些关于gitflow的误解
-
-1. gitflow的feature分支允许force push
-3. trunkflow, 其实是把feature分支转换成为了"本地分支", 优点是可以在本地安全便捷地使用rebase, 缺点是不便于进行"多任务"
-故事卡进行中, 需要临时处理优先级更高的卡, gitflow可以在feature分支上提交并push并妥善保存, trunkflow似乎就只有修复代码至不影响其他功能或把本机commit作为patch脱离git保存(或者reset&stash)
-4. gitflow, feature分支在合并在dev之前也可以(在比较常见的情况下,也应该)rebase到dev的最新提交上, 不一定要进行大量的merge -->
