@@ -38,7 +38,7 @@ Git的本质其实是~~复读机~~一个**内容寻址（content-addressable)文
 ## Git中存储的对象
 
 ###  1. blob对象
-对应的值是单个文件内容变动的快照, 这个快照不包括文件名。
+对应的值是单个文件内容的快照, 这个快照不包括文件名。
 
 ![blob](http://my.csdn.net/uploads/201206/19/1340112751_1500.jpg)
 
@@ -48,7 +48,7 @@ Git的本质其实是~~复读机~~一个**内容寻址（content-addressable)文
 ![tree](http://my.csdn.net/uploads/201206/19/1340112774_4979.jpg)
 
 ###  3. commit对象
-对应的值包含一个数据集（通常称为`Comments`, 这个数据集包含父级`commit`的地址(SHA1值, 通常也被称作commitid)、作者以及提交message等信息)以及一个当前`commit`对应的变更的`tree`, `tree`的内容为当次提交的变动快照。
+对应的值包含一个数据集（通常称为`Comments`, 这个数据集包含父级`commit`的地址(SHA1值, 通常也被称作commitid)、作者以及提交message等信息)以及一个当前`commit`对应的变更的`tree`, `tree`的内容为当次提交的变动快照(没有发生变动的文件不会被加入快照)。
 
 ![commit](http://my.csdn.net/uploads/201206/19/1340112824_8482.jpg)
 
