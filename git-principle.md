@@ -205,7 +205,7 @@ git merge branch1 # 冲突已经在频繁的rebase中被解决的, 这里的merg
 
 ## repo-level
 
-  - fetch: 同步remote repo的状态<!-- 关于pull, git pull其实是git fetch + get merge <origin名>/<分支名>的组合命令, 在我们trunkflow中, 我们应该使用 --rebase -->
+  - fetch: 同步remote repo的状态<!-- 关于pull, git pull其实是git fetch + get merge <origin名>/<分支名>的组合命令, 在我们trunkflow中, 我们应该使用 rebase -->
   - remote: 管理remote repo及相关分支, 几乎只需要单次配置, 不做赘述.
   - push: 将本地的commit推送到服务器（默认不会推送tag)<!-- 需要保证此时代码为最新版本 -->
     - push --tag: 连tag一起推送<!-- force 这些操作就不提了, 因为理论来说不太应该使用它们 -->
@@ -222,7 +222,7 @@ git merge branch1 # 冲突已经在频繁的rebase中被解决的, 这里的merg
 
 - 他人和自己编辑了对同一文件的编辑内容存在交叉行<!-- 最简单, 借助diff工具可以直接解决 -->
   <!-- 后面两种会比较麻烦, 后面解决冲突部分详细说明 -->
-- 他人删除、移动了自己编辑的文件
+- 他人删除了自己编辑的文件
 - 他人和自己新增了同名的文件
 
 ## 规避冲突的优选操作
